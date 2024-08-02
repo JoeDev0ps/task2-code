@@ -1,45 +1,39 @@
 #!/bin/bash
 
-# remove running containers
-docker rm -f $(docker ps -qa)
+# Remove running containers (cleanup)
+docker rm -f $(docker ps -q -a)
 
-# create a network
-docker network create trio-task-network
+# Create a network
+docker network create mynetwork
 
-#create a volume
-docker volume create new-volume
+# Create a volume
+docker volume create myvolume
 
-# build flask and mysql
-docker build -t trio-task-mysql:5.7 db
-docker build -t trio-task-flask-app:latest flask-app
+# Build flask-app + mysql images
+docker build -t flask-app flask-app
+docker build -t mysql db
 
-# run mysql container
+# Run mysql container
 docker run -d \
     --name mysql \
-    --network trio-task-network \
-    --mount type=volume,source=new-volume,target=/var/lib/mysql \
-    trio-task-mysql:5.7
+    --network mynetwork \
+    --mount type=volume,source=myvolume,target=/var/lib/mysql \
+    mysql
 
-# run flask container
+# Run flask container
 docker run -d \
-    -e MYSQL_ROOT_PASSWORD=password \
+    -e MYSQL_ROOT_PASSWORD=secretpass \
     --name flask-app \
-    --network trio-task-network \
-    trio-task-flask-app:latest
+    --network mynetwork \
+    flask-app
 
-# run the nginx container 
+# Run nginx container (official image)
 docker run -d \
     --name nginx \
     -p 80:80 \
-    --network trio-task-network \
+    --network mynetwork \
     --mount type=bind,source=$(pwd)/nginx/nginx.conf,target=/etc/nginx/nginx.conf \
-    nginx:latest
+    nginx
 
-# shpw running containers
+# Show all containers
 docker ps -a
-
-
-
-
-
-
